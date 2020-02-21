@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="https://unpkg.com/rxjs@6.2.2/bundles/rxjs.umd.min.js"></script>
+    </head>
+    <body>
+
+        <input 
+            id="text-box"
+            type="text" 
+            placeholder="Input Keyword"
+            style="font-size:20px"/>
+
+        <script>
+            let arrayAnimal = ["gajah","anoa","kucing","kambing","sapi"]
+            let textBox     = document.getElementById('text-box')
+
+            const {
+                fromEvent,
+                from,
+            } = rxjs
+
+            const {
+                map, 
+                filter,
+                debounceTime,
+                switchMap,
+                first,
+            } = rxjs.operators
+
+            const observable = fromEvent(textBox, 'keyup')
+                .pipe(
+                    debounceTime(750),
+                    filter(() => textBox.value !== ""),
+                    switchMap(() => 
+                        from(arrayAnimal)
+                            .pipe(
+                                first(e => e.startsWith(textBox.value))
+                            )
+                    )
+                )
+
+            observable.subscribe(val => textBox.value = val);
+
+        </script>
+
+    </body>
+</html>
