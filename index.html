@@ -26,21 +26,23 @@
                 debounceTime,
                 switchMap,
                 first,
+                take
             } = rxjs.operators
 
             const observable = fromEvent(textBox, 'keyup')
                 .pipe(
                     debounceTime(750),
-                    filter(() => textBox.value !== ""),
+                    filter((e) => textBox.value !== ""),
                     switchMap(() => 
                         from(arrayAnimal)
                             .pipe(
-                                first(e => e.startsWith(textBox.value))
+                                filter(e => e.startsWith(textBox.value)),
+                                take(1)
                             )
                     )
                 )
 
-            observable.subscribe(val => textBox.value = val);
+            observable.subscribe(val => textBox.value = val)
 
         </script>
 
