@@ -1,50 +1,45 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <script src="https://unpkg.com/rxjs@6.2.2/bundles/rxjs.umd.min.js"></script>
-    </head>
-    <body>
+  <head>
+    <script src="https://unpkg.com/rxjs@6.2.2/bundles/rxjs.umd.min.js"></script>
+  </head>
+  <body>
+    <input
+      id="text-box"
+      type="text"
+      placeholder="Input Keyword"
+      style="font-size:20px"
+    />
 
-        <input 
-            id="text-box"
-            type="text" 
-            placeholder="Input Keyword"
-            style="font-size:20px"/>
+    <script>
+      let arrayAnimal = ["gajah", "anoa", "kucing", "kambing", "sapi"];
+      let textBox = document.getElementById("text-box");
 
-        <script>
-            let arrayAnimal = ["gajah","anoa","kucing","kambing","sapi"]
-            let textBox     = document.getElementById('text-box')
+      const { fromEvent, from } = rxjs;
 
-            const {
-                fromEvent,
-                from,
-            } = rxjs
+      const {
+        map,
+        filter,
+        debounceTime,
+        switchMap,
+        first,
+        take,
+        tap
+      } = rxjs.operators;
 
-            const {
-                map, 
-                filter,
-                debounceTime,
-                switchMap,
-                first,
-                take
-            } = rxjs.operators
+      const observable = fromEvent(textBox, "keyup").pipe(
+        tap(e => console.log(e)),
+        debounceTime(750),
+        filter(e => e.originalTarget.value !== ""),
+        switchMap((e) =>
+          from(arrayAnimal).pipe(
+            filter(it => it.startsWith(e.originalTarget.value)),
+            take(1)
+          )
+        )
+      );
 
-            const observable = fromEvent(textBox, 'keyup')
-                .pipe(
-                    debounceTime(750),
-                    filter((e) => textBox.value !== ""),
-                    switchMap(() => 
-                        from(arrayAnimal)
-                            .pipe(
-                                filter(e => e.startsWith(textBox.value)),
-                                take(1)
-                            )
-                    )
-                )
-
-            observable.subscribe(val => textBox.value = val)
-
-        </script>
-
-    </body>
+      observable.subscribe(val => (textBox.value = val));
+    </script>
+  </body>
 </html>
