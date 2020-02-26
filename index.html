@@ -1,104 +1,104 @@
 <!DOCTYPE html>
 <html>
     <head>
-			<meta charset="utf-8">
-			<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-			<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
-			<script src="https://unpkg.com/rxjs@6.2.2/bundles/rxjs.umd.min.js"></script>
-			<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-			<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+      <script src="https://unpkg.com/rxjs@6.2.2/bundles/rxjs.umd.min.js"></script>
+      <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     </head>
     <body>
 
         <div class="container p-5">
-					<input 
-					id="text-box"
-					type="text" 
-					placeholder="Search suggestion name"
-					class="form-control"/>
-					<div id=result>
+          <input
+          id="text-box"
+          type="text"
+          placeholder="Search suggestion name"
+          class="form-control"/>
+          <div id=result>
 
-					
-				</div>
+
+        </div>
 
           <script>
             const {
-							fromEvent,
-							from,
-							merge
+              fromEvent,
+              from,
+              merge
             } = rxjs
 
             const {
-							map, 
-							filter,
-							debounceTime,
-							switchMap,
-							first,
-							take,
-							tap
+              map,
+              filter,
+              debounceTime,
+              switchMap,
+              first,
+              take,
+              tap
             } = rxjs.operators
 
             const DELAY                   = 750
             const MINIMUM_WORD_TO_EXECUTE = 3
             const KEYCODE_BACKSPACE       = 8
             const TOKEN                   = 'Z1PQI0Bd708LULX921hamUDxbsyh9Df63DYE'
-						
+
             const textBox   = document.getElementById('text-box')
 
-						function SearchName(name){
-							const url = `https://gorest.co.in/public-api/users?access-token=${TOKEN}`
-							const opts = {
-								url: url,
-								method: "get",
-								headers: {
-									'Content-Type': 'application/json'
-								},
-								params: {
-									first_name: name,
-									_format: "json",
-								}
-							}
-							return axios(opts)
-						}
+            function SearchName(name){
+              const url = `https://gorest.co.in/public-api/users?access-token=${TOKEN}`
+              const opts = {
+                url: url,
+                method: "get",
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                params: {
+                  first_name: name,
+                  _format: "json",
+                }
+              }
+              return axios(opts)
+            }
 
-						const whenPressBackspace = fromEvent(textBox, 'keydown')
-							.pipe(
-								filter(e => e.keyCode === KEYCODE_BACKSPACE),
-								debounceTime(DELAY),
-								tap(() => $("#result").empty())
-							)
-						
-						const keywordCountEqualandMoreMinimum = fromEvent(textBox, 'keyup')
-							.pipe(
-								debounceTime(DELAY),
-								filter(e => e.target.value !== "" && e.target.value.length >= MINIMUM_WORD_TO_EXECUTE),
-								tap(() => $("#result").empty()),
-								switchMap((e) =>
-									from(SearchName(e.target.value))
-										.pipe(
-											switchMap((res) => 
-												from(res.data.result)
-													.pipe(
-														take(5)
-													)
-											),
-										)
-								)
-							)
+            const whenPressBackspace = fromEvent(textBox, 'keydown')
+              .pipe(
+                filter(e => e.keyCode === KEYCODE_BACKSPACE),
+                debounceTime(DELAY),
+                tap(() => $("#result").empty())
+              )
+
+            const keywordCountEqualandMoreMinimum = fromEvent(textBox, 'keyup')
+              .pipe(
+                debounceTime(DELAY),
+                filter(e => e.target.value !== "" && e.target.value.length >= MINIMUM_WORD_TO_EXECUTE),
+                tap(() => $("#result").empty()),
+                switchMap((e) =>
+                  from(SearchName(e.target.value))
+                    .pipe(
+                      switchMap((res) =>
+                        from(res.data.result)
+                          .pipe(
+                            take(5)
+                          )
+                      ),
+                    )
+                )
+              )
 
             const observable = merge(
-							whenPressBackspace,
-							keywordCountEqualandMoreMinimum
-						)
+              whenPressBackspace,
+              keywordCountEqualandMoreMinimum
+            )
             observable.subscribe(
-							val => {
-								val.first_name && $("#result").append(`<p>${val.first_name}</p>`);
-							}
-						)
+              val => {
+                val.first_name && $("#result").append(`<p>${val.first_name}</p>`);
+              }
+            )
 
         </script>
-				<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
-				<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
-				<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+        <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
     </body>
 </html>
