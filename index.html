@@ -4,7 +4,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
       <script 
-        src="https://unpkg.com/rxjs@6.2.2/bundles/rxjs.umd.min.js"></script>
+        src="https://unpkg.com/rxjs@6.5/bundles/rxjs.umd.min.js"></script>
       <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     </head>
     <body>
@@ -24,7 +24,9 @@
             const {
               fromEvent,
               from,
-              merge
+              merge,
+              zip,
+              combineAll
             } = rxjs
 
             const {
@@ -34,7 +36,10 @@
               switchMap,
               first,
               take,
-              tap
+              tap,
+              concatAll,
+              toArray,
+              distinct
             } = rxjs.operators
 
             const DELAY                   = 750
@@ -45,7 +50,7 @@
             const textBox   = document.getElementById('text-box')
             const divResult = document.getElementById('result')
 
-            function SearchName(name){
+            const searchName = (name) => {
               const url = `https://gorest.co.in/public-api/users?access-token=${TOKEN}`
               const opts = {
                 url: url,
@@ -61,6 +66,18 @@
               return axios(opts)
             }
 
+            const getValueFromApi = (e) => {
+              return from(searchName(e.target.value))
+                    .pipe(
+                      switchMap((res) =>
+                        from(res.data.result)
+                          .pipe(
+                            take(5)
+                          )
+                      ),
+                    )
+            }
+
             const whenPressBackspace = fromEvent(textBox, 'keydown')
               .pipe(
                 filter(e => e.keyCode === KEYCODE_BACKSPACE),
@@ -73,17 +90,22 @@
                 debounceTime(DELAY),
                 filter(e => e.target.value !== "" && e.target.value.length >= MINIMUM_WORD_TO_EXECUTE),
                 tap(() => divResult.innerHTML = ""),
-                switchMap((e) =>
-                  from(SearchName(e.target.value))
-                    .pipe(
-                      switchMap((res) =>
-                        from(res.data.result)
-                          .pipe(
-                            take(5)
-                          )
-                      ),
+                switchMap((e) => {
+                    return zip(getValueFromApi(e), getValueFromApi(e)).pipe(
+                      concatAll(),
+                      map((res) =>{
+                        if(res.first_name) return res.first_name
+                        
+                      }),
+                      toArray()
                     )
-                )
+                  }
+                ),
+                switchMap((arrayResult) => {
+                  return from(arrayResult).pipe(
+                    distinct()
+                  )
+                })
               )
 
             const observable = merge(
@@ -92,7 +114,7 @@
             )
             observable.subscribe(
               val => {
-                if(val.first_name) divResult.innerHTML += `<p>${val.first_name}</p>`
+                if(typeof(val) === "string") divResult.innerHTML += `<p>${val}</p>`
               }
             )
 
