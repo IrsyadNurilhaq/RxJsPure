@@ -13,7 +13,7 @@
           <input
           id="text-box"
           type="text"
-          placeholder="Search suggestion name"
+          placeholder="Search movie title"
           style="width:300px;padding: 5px;font-size:15px"/>
           <div id=result>
 
@@ -45,39 +45,59 @@
             const DELAY                   = 750
             const MINIMUM_WORD_TO_EXECUTE = 3
             const KEYCODE_BACKSPACE       = 8
-            const TOKEN                   = 'Z1PQI0Bd708LULX921hamUDxbsyh9Df63DYE'
+            const TOKEN_THEMOVIE          = '2795e75a482b306ddd33407e5c073029'
 
             const textBox   = document.getElementById('text-box')
             const divResult = document.getElementById('result')
 
-            const searchName = (name) => {
-              const url = `https://gorest.co.in/public-api/users?access-token=${TOKEN}`
+
+            const baseAPI = (url, param) => {
               const opts = {
                 url: url,
                 method: "get",
                 headers: {
                   'Content-Type': 'application/json'
                 },
-                params: {
-                  first_name: name,
-                  _format: "json",
-                }
+                params: param
               }
               return axios(opts)
             }
-
-            const getValueFromApi = (e) => {
-              return from(searchName(e.target.value))
+            
+            //API LIST
+            const themoviedbAPI = (movieName) => {
+              const url = 'https://api.themoviedb.org/3/search/movie'
+              const param = {
+                api_key : TOKEN_THEMOVIE,
+                query: movieName
+              }
+              return from(baseAPI(url,param))
                     .pipe(
-                      switchMap((res) =>
-                        from(res.data.result)
+                      switchMap((res) => 
+                        from(res.data.results)
                           .pipe(
                             take(5)
                           )
-                      ),
+                      )
                     )
             }
 
+            const tvmazeAPI = (movieName) => {
+              const url = 'http://api.tvmaze.com/search/shows'
+              const param = {
+                q: movieName
+              }
+              return from(baseAPI(url,param))
+                    .pipe(
+                      switchMap((res) => 
+                        from(res.data)
+                          .pipe(
+                            take(5)
+                          )
+                      )
+                    )
+            }
+
+            //RxJs
             const whenPressBackspace = fromEvent(textBox, 'keydown')
               .pipe(
                 filter(e => e.keyCode === KEYCODE_BACKSPACE),
@@ -85,32 +105,37 @@
                 tap(() => divResult.innerHTML = "")
               )
 
-            const keywordCountEqualandMoreMinimum = fromEvent(textBox, 'keyup')
+            const wordCountEqualandMoreMinimum = fromEvent(textBox, 'keyup')
               .pipe(
                 debounceTime(DELAY),
                 filter(e => e.target.value !== "" && e.target.value.length >= MINIMUM_WORD_TO_EXECUTE),
                 tap(() => divResult.innerHTML = ""),
                 switchMap((e) => {
-                    return zip(getValueFromApi(e), getValueFromApi(e)).pipe(
-                      concatAll(),
-                      map((res) =>{
-                        if(res.first_name) return res.first_name
-                        
-                      }),
-                      toArray()
-                    )
+                    return zip(
+                        themoviedbAPI(e.target.value),
+                        tvmazeAPI(e.target.value)
+                      )
+                      .pipe(
+                        concatAll(),
+                        map((res) =>{
+                          if(res.title) return res.title
+                          if(res.show) return res.show.name
+                        }),
+                        toArray()
+                      )
                   }
                 ),
                 switchMap((arrayResult) => {
-                  return from(arrayResult).pipe(
-                    distinct()
-                  )
+                  return from(arrayResult)
+                    .pipe(
+                      distinct()
+                    )
                 })
               )
 
             const observable = merge(
               whenPressBackspace,
-              keywordCountEqualandMoreMinimum
+              wordCountEqualandMoreMinimum
             )
             observable.subscribe(
               val => {
